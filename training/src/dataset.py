@@ -22,8 +22,8 @@ from os.path import join
 from pycocotools.coco import COCO
 import multiprocessing
 
-BASE = "/root/hdd"
-BASE_PATH = ""
+BASE = "/home/ubuntu/sandbox"
+BASE_PATH = "/home/ubuntu/sandbox/ai_challenger"
 TRAIN_JSON = "ai_challenger_train.json"
 VALID_JSON = "ai_challenger_valid.json"
 
