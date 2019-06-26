@@ -24,13 +24,14 @@ def display_image():
     from os.path import join
     from dataset import _parse_function
 
-    BASE_PATH = "/root/hdd/ai_challenger"
-
+    #BASE_PATH = "/root/hdd/ai_challenger"
+    BASE_PATH = "/home/ubuntu/sandbox/hand_labels/"
     import os
     # os.chdir("..")
 
     ANNO = COCO(
-        join(BASE_PATH, "ai_challenger_valid.json")
+        #join(BASE_PATH, "ai_challenger_valid.json")
+        join(BASE_PATH, "left_hand_train.json")
     )
     train_imgIds = ANNO.getImgIds()
 
@@ -124,6 +125,7 @@ def run_with_frozen_pb(img_path, input_w_h, frozen_graph, output_node_names):
     graph = tf.get_default_graph()
     image = graph.get_tensor_by_name("image:0")
     output = graph.get_tensor_by_name("%s:0" % output_node_names)
+    print(output)
 
     image_0 = cv2.imread(img_path)
     w, h, _ = image_0.shape
@@ -140,11 +142,12 @@ def run_with_frozen_pb(img_path, input_w_h, frozen_graph, output_node_names):
         )
         # save each heatmaps to disk
         from PIL import Image
-        for _ in range(heatmaps.shape[2]):
-            data = CocoPose.display_image(image_, heatmaps[0,:,:,:], pred_heat=heatmaps[0, :, :, _:(_ + 1)], as_numpy=True)
-            im = Image.fromarray(data)
-            im.save("test/heat_%d.jpg" % _)
-
+        # for _ in range(heatmaps.shape[2]):
+        #     data = CocoPose.display_image(image_, heatmaps[0,:,:,:], pred_heat=heatmaps[0, :, :, _:(_ + 1)], as_numpy=True)
+        #     im = Image.fromarray(data)
+        #     im.save("test/heat_%d.jpg" % _)
+        print(heatmaps.shape)
+        return heatmaps
 
 if __name__ == '__main__':
     # saved_model_graph()

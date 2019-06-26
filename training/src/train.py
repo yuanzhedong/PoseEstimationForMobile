@@ -28,13 +28,13 @@ from networks import get_network
 from dataset_prepare import CocoPose
 from dataset_augment import set_network_input_wh, set_network_scale
 
-def get_input_iter(batchsize, epoch, is_train=True):
-    if is_train is True:
-        input_pipeline = get_train_dataset_pipeline(batch_size=batchsize, epoch=epoch, buffer_size=100)
-    else:
-        input_pipeline = get_valid_dataset_pipeline(batch_size=batchsize, epoch=epoch, buffer_size=100)
-    iter = input_pipeline.make_one_shot_iterator()
-    return iter
+# def get_input_iter(batchsize, epoch, is_train=True):
+#     if is_train is True:
+#         input_pipeline = get_train_dataset_pipeline(batch_size=batchsize, epoch=epoch, buffer_size=100)
+#     else:
+#         input_pipeline = get_valid_dataset_pipeline(batch_size=batchsize, epoch=epoch, buffer_size=100)
+#     iter = input_pipeline.make_one_shot_iterator()
+#     return iter
 
 def get_loss_and_output(model, batchsize, input_image, input_heat, reuse_variables=None):
     losses = []
@@ -115,7 +115,8 @@ def main(argv=None):
 
     with tf.Graph().as_default(), tf.device("/cpu:0"):
         train_dataset = get_train_dataset_pipeline(params['batchsize'], params['max_epoch'], buffer_size=100)
-        valid_dataset = get_valid_dataset_pipeline(params['batchsize'], params['max_epoch'], buffer_size=100)
+        #valid_dataset = get_valid_dataset_pipeline(params['batchsize'], params['max_epoch'], buffer_size=100)
+        valid_dataset = get_valid_dataset_pipeline(params['batchsize'], 99999, buffer_size=100)
 
         train_iterator = train_dataset.make_one_shot_iterator()
         valid_iterator = valid_dataset.make_one_shot_iterator()
@@ -125,7 +126,7 @@ def main(argv=None):
 
         global_step = tf.Variable(0, trainable=False)
         learning_rate = tf.train.exponential_decay(float(params['lr']), global_step,
-                                                   decay_steps=10000, decay_rate=float(params['decay_rate']), staircase=True)
+                                                   decay_steps=400, decay_rate=float(params['decay_rate']), staircase=True)
         opt = tf.train.AdamOptimizer(learning_rate, epsilon=1e-8)
         tower_grads = []
         reuse_variable = False
@@ -192,7 +193,7 @@ def main(argv=None):
 
             summary_writer = tf.summary.FileWriter(os.path.join(params['logpath'], training_name), sess.graph)
             total_step_num = params['num_train_samples'] * params['max_epoch'] // (params['batchsize'] * params['gpus'])
-            print("Start training...")
+            print("Start training...total_step_num = {}".format(total_step_num))
             for step in range(total_step_num):
                 start_time = time.time()
                 _, loss_value, lh_loss = sess.run([train_op, loss, last_heat_loss],
@@ -208,7 +209,11 @@ def main(argv=None):
                             feed_dict={handle: valid_handle}
                         )
                         result = []
+                        num_samples = valid_in_image.shape[0]
+                        
                         for index in range(params['batchsize']):
+                            if num_samples != params['batchsize']:
+                                break
                             r = CocoPose.display_image(
                                     valid_in_image[index,:,:,:],
                                     valid_in_heat[index,:,:,:],
@@ -219,13 +224,14 @@ def main(argv=None):
                                 r.astype(np.float32)
                             )
 
-                        comparsion_of_pred_result = sess.run(
-                            pred_result__summary,
-                            feed_dict={
-                                pred_result_image: np.array(result)
-                            }
-                        )
-                        summary_writer.add_summary(comparsion_of_pred_result, step)
+                        if len(result) > 0:
+                            comparsion_of_pred_result = sess.run(
+                                pred_result__summary,
+                                feed_dict={
+                                    pred_result_image: np.array(result)
+                                }
+                            )
+                            summary_writer.add_summary(comparsion_of_pred_result, step)
 
                     # print train info
                     num_examples_per_step = params['batchsize'] * params['gpus']
